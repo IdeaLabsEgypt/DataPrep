@@ -44,7 +44,7 @@ class SQLDataDump:
              data.get("dev_website", "Null"),
              data.get("email", "Null"),
              data["content_rating"],
-             date(data["date_published"]),
+             date(data["date_published"]), #should be fixed to fix the excution error!
              data["operating_system"],
              data["downloads"],
              data["category"],
