@@ -13,6 +13,7 @@ class SQLDataDump:
     def __init__(self):
         self.db = MySQLdb.connect("localhost", "root", "root", "appsdb", use_unicode=True, charset="utf8")
         self.brokensqls = 0
+        self.rejectedsqls = 0
 
     def get_db_version(self):
         cursor = self.db.cursor()
@@ -30,6 +31,9 @@ class SQLDataDump:
 
         publish_date = datetime.strptime(data["date_published"], '%B %d, %Y').date()
         price = float(data["price"].strip("EGP ").replace(',', ''))
+        developer = data.get("developer", "NA").replace('"', '\\"').replace('\\\\"', '\\"')
+        description = data.get("Description", "NA").replace('"', '\\"').replace('\\\\"', '\\"')
+        title = data.get("title", "NA").replace('"', '\\"').replace('\\\\"', '\\"')
         # print json_object
         sql = 'INSERT INTO `appsdb`.`apps_default` ' \
               '(`price`, ' \
@@ -49,9 +53,9 @@ class SQLDataDump:
               '`rating`) ' \
               'VALUES (%f, "%s", %d, "%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s");' % \
               (price,
-               data.get("developer", "NA"),
+               developer,
                int(data.get("reviewers", "NULL")),
-               data.get("title", "NA"),
+               title,
                data.get("dev_website", "Null"),
                data.get("email", "Null"),
                data.get("content_rating", "NA"),
@@ -61,7 +65,7 @@ class SQLDataDump:
                data.get("category", "NA"),
                data.get("developer_link", "NA"),
                data.get("app_url", "NA"),
-               data.get("Description", "NA"),
+               description,
                data.get("rating", "NA"))
         return sql
 
@@ -71,6 +75,7 @@ class SQLDataDump:
             self.db.commit()
             return True
         except:
+            print sql
             return False
         pass
 
@@ -79,13 +84,17 @@ class SQLDataDump:
         with open('apps_all_utf8_cleaned') as f:
             for line in f:
                 sql = self.convert_object_to_insert_statement(line)
-                self.insert_into_db(sql)
+                success = self.insert_into_db(sql)
+                if success == False:
+                    self.rejectedsqls += 1
 
                 counter += 1
                 if counter % 1000 == 0:
                     # return counter
                     print counter
                     print self.brokensqls
+                    print self.rejectedsqls
+                    print "--------------"
         return 1000
 
 
