@@ -1,0 +1,20 @@
+[SQL dump]
+about the SQL dump (rared) for storage purposes. (will attach link to it later)
+
+to use this dump do the following:
+- unrar the file into a .sql file
+- open "MySQL workbench"
+- import the .sql into the MySQL workbench
+
+NOTE:
+it's better if the connection string would be the same for the code to work on any machine
+
+[features]
+the file "features" is the file holds the compiled feature vector for the whole apps (~1M app).
+it was generated using the method run() in file InputDataFormatter
+
+[file to database conversion]
+the file jsonToMySQLconverter handles the conversion methods between the json to the sql insert statement.
+it dropped about 500 apps in the process because of non-unicode encoding errors. and the workaround was a little time consuming to do.
+
+

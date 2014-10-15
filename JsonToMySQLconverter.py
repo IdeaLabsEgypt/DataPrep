@@ -28,7 +28,6 @@ class SQLDataDump:
         except:
             self.brokensqls = self.brokensqls + 1
             return ""
-
         publish_date = datetime.strptime(data["date_published"], '%B %d, %Y').date()
         price = float(data["price"].strip("EGP ").replace(',', ''))
         developer = data.get("developer", "NA").replace('"', '\\"').replace('\\\\"', '\\"')

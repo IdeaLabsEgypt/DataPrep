@@ -1,7 +1,11 @@
 # -*- coding: utf-8 -*-
+
+# from __future__ import print_function
+import codecs
 import json
 from unittest import TestCase
 import re
+
 
 
 # {"price": "0", "developer": "MMH Dev", "reviewers": "8270", "title": "English Arabic Dictionary",
@@ -37,28 +41,33 @@ from datetime import  date
 class InputDataFormatter(object):
     def __init__(self, json_object):
         self.source_object = json_object
-        # self.developers = self.fetch_developer_data()
-        self.android_versions_dict = self.load_android_versions()
+        self.developers = self.fetch_developer_data()
+        self.android_versions_dict = self.load_file_into_dict('android_versions_enum')
+        self.catogries_dict = self.load_file_into_dict('categories_enum')
 
     def string(self):
         return json.dumps(self.source_object)
 
     def price(self):
-        return float(self.source_object["price"])
+        price = float(self.source_object["price"].strip("EGP ").replace(',', ''))
+        # return float(self.source_object["price"])
+        return price
 
     def dev_name_length(self):
         return int(len(self.source_object["developer"]))
 
     def number_of_reviewers(self):
-        return int(self.source_object["reviewers"])
+        return int(self.source_object.get("reviewers", ""))
 
     def is_english(self):
         pattern = unicode(u"[ابتثجحخدذرزسشصضطظعغفقكلمنهوي]")
-        return re.search(pattern,
-                         self.source_object["title"]) is None
+        return re.search(pattern, self.source_object["title"]) is None
 
     def title_word_count(self):
         return len(self.source_object["title"].split())
+
+    def title_legth(self):
+        return len(self.source_object["title"])
 
     def content_rating(self):
         if self.source_object["content_rating"].lower() == "everyone":
@@ -74,14 +83,17 @@ class InputDataFormatter(object):
 
     def fetch_developer_data(self):
         self.db = MySQLdb.connect("localhost", "root", "root", "appsdb", use_unicode=True, charset="utf8")
-        sql = "SELECT distinct (developer), count(*) as count FROM appsdb.apps_default Group by developer"
+        sql = "SELECT distinct (lcase(developer)), count(*) as count FROM appsdb.apps_default Group by lcase(developer)"
         cur = self.db.cursor()
         cur.execute(sql)
         rows = dict(cur.fetchall())
+        # with codecs.open("developers", 'w', encoding='utf8') as w:
+        #     for k in rows.keys():
+        #         w.write(k+"\n")
         return rows
 
     def number_of_apps_for_developer(self):
-        return self.developers[self.source_object["developer"]]
+        return self.developers.get(self.source_object["developer"].lower(), "1")
 
     def date_published_difference(self):
         date_string = self.source_object["date_published"]
@@ -90,11 +102,11 @@ class InputDataFormatter(object):
         difference = publish_date - refernce_date
         return difference.days
 
-    def load_android_versions(self):
+    def load_file_into_dict(self, filename):
         dict = {}
-        print (type(dict))
+        # print (type(dict))
         counter = 0
-        with open('android_versions_enum') as f:
+        with open(filename) as f:
             for line in f:
                 dict[line.rstrip()] = counter
                 counter+=1
@@ -104,7 +116,59 @@ class InputDataFormatter(object):
         return self.android_versions_dict[self.source_object["operating_system"]]
 
     def number_of_downloads(self):
-        return len(self.source_object["downloads"])
+        return len(self.source_object.get("downloads", "0"))
+
+    def category(self):
+        return self.catogries_dict[self.source_object.get("category", "")]
+
+    def description_legth(self):
+        return len(self.source_object.get("Description", "").strip())
+
+    def rating(self):
+        return float(self.source_object.get("rating", "0"))
+
+
+def run():
+    counter=0
+    broken_jsons=0
+    obj = InputDataFormatter("")
+    with codecs.open("features", 'w', encoding='utf8') as w:
+        with codecs.open("apps_all_utf8_cleaned", 'r') as f:
+            for line in f:
+                try:
+                    data = json.loads(line)
+                except:
+                    broken_jsons+=1
+                    continue
+                obj.source_object = data
+                if obj.is_english() == False: continue
+                price = obj.price()
+                dev_name_len = obj.dev_name_length()
+                reviewers = obj.number_of_reviewers()
+                title_word_count = obj.title_word_count()
+                title_length = obj.title_legth()
+                content_rating = obj.content_rating()
+                number_of_apps_for_developer = obj.number_of_apps_for_developer()
+                age = obj.date_published_difference()
+                version = obj.android_version_enum()
+                downloads = obj.number_of_downloads()
+                category = obj.category()
+                description = obj.description_legth()
+                rating = obj.rating()
+
+                feature_vector="%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s"%(price, dev_name_len, reviewers, title_word_count,
+                                                                                     title_length, content_rating, number_of_apps_for_developer,
+                                                                                     age, version, downloads, category, description, rating)
+                w.write(feature_vector)
+                w.write("\n")
+                if counter % 1000 == 0:
+                    print counter
+                counter += 1
+    w.close()
+    f.close()
+
+if __name__ == "__main__":
+    run()
 
 
 
@@ -147,6 +211,9 @@ class InputDataFormatterTest(TestCase):
         self.formatter = InputDataFormatter(self.sample_non_english_input)
         self.assertFalse(self.formatter.is_english())
 
+    def test_title_lenght(self):
+        self.assertEqual(self.formatter.title_legth(), 25)
+
     def test_title_word_count(self):
         self.assertEqual(self.formatter.title_word_count(), 3)
 
@@ -179,13 +246,25 @@ class InputDataFormatterTest(TestCase):
         self.assertEqual(self.formatter.date_published_difference(), 5364)
         pass
 
-    def test_load_android_versions(self):
-        self.assertEqual(len(self.formatter.load_android_versions()), 135)
+    def test_load_file_into_dict(self):
+        self.assertEqual(len(self.formatter.load_file_into_dict('android_versions_enum')), 135)
 
     def test_android_version_enum(self):
         self.assertEqual(self.formatter.android_version_enum(), 1)
 
     def test_number_of_downloads(self):
         self.assertEqual(self.formatter.number_of_downloads(), 19)
+
+    def test_categorey(self):
+        self.assertEqual(self.formatter.category(), 40)
+
+    def test_description_length(self):
+         self.assertEqual(self.formatter.description_legth(), 773)
+
+    def test_rating(self):
+        self.assertEqual(self.formatter.rating(), 4.188028812408447)
+
+
+
 
 
