@@ -132,7 +132,7 @@ def run():
     counter=0
     broken_jsons=0
     obj = InputDataFormatter("")
-    with codecs.open("features", 'w', encoding='utf8') as w:
+    with codecs.open("resulting_Features", 'w', encoding='utf8') as w:
         with codecs.open("apps_all_utf8_cleaned", 'r') as f:
             for line in f:
                 try:
@@ -142,23 +142,25 @@ def run():
                     continue
                 obj.source_object = data
                 if obj.is_english() == False: continue
-                price = obj.price()
-                dev_name_len = obj.dev_name_length()
+                # price = obj.price()
+                # dev_name_len = obj.dev_name_length()
                 reviewers = obj.number_of_reviewers()
-                title_word_count = obj.title_word_count()
-                title_length = obj.title_legth()
-                content_rating = obj.content_rating()
-                number_of_apps_for_developer = obj.number_of_apps_for_developer()
-                age = obj.date_published_difference()
-                version = obj.android_version_enum()
+                # title_word_count = obj.title_word_count()
+                # title_length = obj.title_legth()
+                # content_rating = obj.content_rating()
+                # number_of_apps_for_developer = obj.number_of_apps_for_developer()
+                # age = obj.date_published_difference()
+                # version = obj.android_version_enum()
                 downloads = obj.number_of_downloads()
-                category = obj.category()
-                description = obj.description_legth()
+                # category = obj.category()
+                # description = obj.description_legth()
                 rating = obj.rating()
 
-                feature_vector="%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s"%(price, dev_name_len, reviewers, title_word_count,
-                                                                                     title_length, content_rating, number_of_apps_for_developer,
-                                                                                     age, version, downloads, category, description, rating)
+                # feature_vector="%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s"%(price, dev_name_len, reviewers, title_word_count,
+                #                                                                      title_length, content_rating, number_of_apps_for_developer,
+                #                                                                      age, version, downloads, category, description, rating)
+
+                feature_vector="%s\t%s\t%s"%(reviewers, downloads, rating)
                 w.write(feature_vector)
                 w.write("\n")
                 if counter % 1000 == 0:
@@ -264,6 +266,8 @@ class InputDataFormatterTest(TestCase):
     def test_rating(self):
         self.assertEqual(self.formatter.rating(), 4.188028812408447)
 
+    def test_run(self):
+        run()
 
 
 
